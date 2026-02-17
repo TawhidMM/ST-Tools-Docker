@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:15
+    container_name: st_project_db
+    restart: always
+    environment:
+      POSTGRES_USER: stuser
+      POSTGRES_PASSWORD: stpass
+      POSTGRES_DB: stdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

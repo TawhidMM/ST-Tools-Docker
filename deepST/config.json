@@ -1,0 +1,121 @@
+{
+  "tool_id": "DeepST",
+  "label": "DeepST",
+  "description": "Deep learning-based spatial domain identification using morphological and spatial information",
+  "parameters": {
+    "platform": {
+      "type": "enum",
+      "label": "Technology platform",
+      "options": ["Visium", "ST", "MERFISH", "slideSeq", "stereoSeq"],
+      "default": "Visium",
+      "ui_group": "basic"
+    },
+    "n_domains": {
+      "type": "int",
+      "label": "Target spatial domains",
+      "default": 7,
+      "ui_group": "basic"
+    },
+    "pca_n_comps": {
+      "type": "int",
+      "label": "Input PCA components",
+      "default": 200,
+      "ui_group": "basic"
+    },
+    "k_graph": {
+      "type": "int",
+      "label": "GNN Graph Neighbors (k)",
+      "default": 12,
+      "ui_group": "basic"
+    },
+    "use_morphological": {
+      "type": "boolean",
+      "label": "Use morphological features",
+      "default": true,
+      "ui_group": "basic"
+    },
+    "dec_cluster_n": {
+      "type": "int",
+      "label": "Internal cluster prototypes",
+      "default": 20,
+      "ui_group": "advanced"
+    },
+    "spatial_k": {
+      "type": "int",
+      "label": "Gene augmentation search pool",
+      "default": 30,
+      "ui_group": "advanced"
+    },
+    "neighbour_k": {
+      "type": "int",
+      "label": "Gene Augmentation neighbors (top-k)",
+      "default": 4,
+      "ui_group": "advanced"
+    },
+    "n_components": {
+      "type": "int",
+      "label": "Gene similarity PCA components",
+      "default": 100,
+      "ui_group": "advanced"
+    },
+    "img_pca_n_comps": {
+      "type": "int",
+      "label": "Image feature PCA",
+      "default": 50,
+      "ui_group": "advanced",
+      "depends_on": { "use_morphological": [true] }
+    },
+    "cnn_type": {
+      "type": "enum",
+      "label": "CNN model type",
+      "options": ["ResNet50", "Resnet152", "Vgg19", "Vgg16", "DenseNet121", "Inception_v3"],
+      "default": "ResNet50",
+      "ui_group": "advanced",
+      "depends_on": { "use_morphological": [true] }
+    },
+    "distType": {
+      "type": "enum",
+      "label": "GNN distance calculation",
+      "options": ["Radius", "BallTree"],
+      "default": "BallTree",
+      "ui_group": "advanced"
+    },
+    "rad_cutoff": {
+      "type": "float",
+      "label": "GNN radius cutoff",
+      "default": 150.0,
+      "ui_group": "advanced",
+      "depends_on": { "distType": ["Radius"] }
+    },
+    "Conv_type": {
+      "type": "enum",
+      "label": "GCN layer type",
+      "options": [
+        "GATConv", "GCNConv", "SAGEConv", "GraphConv", "GatedGraphConv",
+        "ResGatedGraphConv", "TransformerConv", "TAGConv", "ARMAConv",
+        "SGConv", "MFConv", "RGCNConv", "FeaStConv", "LEConv", "ClusterGCNConv"
+      ],
+      "default": "GATConv",
+      "ui_group": "advanced"
+    },
+    "pre_epochs": { "type": "int", "label": "Pretraining epochs", "default": 1000, "ui_group": "advanced" },
+    "epochs": { "type": "int", "label": "Training epochs", "default": 500, "ui_group": "advanced" },
+    "p_drop": { "type": "float", "label": "Dropout probability", "default": 0.01, "ui_group": "advanced" },
+    "seed": { "type": "int", "label": "Random seed", "default": 0, "ui_group": "advanced" }
+  },
+  "profiles": {
+    "default": {
+      "overrides": {},
+      "internal_params": {
+        "spatial_type": "BallTree",
+        "linear_encoder_hidden": [32, 20],
+        "linear_decoder_hidden": [32],
+        "conv_hidden": [32, 8],
+        "kl_weight": 1.0,
+        "mse_weight": 1.0,
+        "bce_kld_weight": 1.0,
+        "domain_weight": 1.0
+      }
+    }
+  }
+}

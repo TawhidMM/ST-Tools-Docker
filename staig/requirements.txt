@@ -1,0 +1,30 @@
+# The R-Python Bridge
+rpy2==3.5.11
+anndata2ri==1.1
+
+# Single-Cell & Spatial
+anndata==0.9.1
+scanpy==1.9.3
+scikit-misc==0.2.0
+leidenalg
+python-igraph
+louvain
+harmonypy
+PyWGCNA
+spatialde
+
+# Visualization & ML
+matplotlib==3.7.1
+seaborn==0.12.2
+umap-learn==0.5.3
+scikit-learn==1.2.2
+pot==0.9.0
+byol-pytorch==0.6.0
+
+# Utilities
+opencv-python==4.7.0.72
+pyyaml==6.0
+tqdm==4.65.0
+loguru==0.7.3
+threadpoolctl==3.4.0
+notebook

@@ -1,0 +1,103 @@
+name: scribble_dom
+channels:
+  - pytorch
+  - nvidia
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  # --------------------------------------------------
+  # Python
+  # --------------------------------------------------
+  - python=3.10.6
+  - pip
+
+  # --------------------------------------------------
+  # CUDA + PyTorch
+  # --------------------------------------------------
+  - pytorch=1.13.1
+  - pytorch-cuda=11.6
+  - torchvision=0.14.1
+  - torchaudio=0.13.1
+
+  # --------------------------------------------------
+  # Core scientific stack
+  # --------------------------------------------------
+  - numpy=1.23.5
+  - scipy=1.8.1
+  - pandas=1.5.3
+  - scikit-learn=1.1.1
+  - scanpy=1.9.2
+  - anndata=0.8.0
+  - umap-learn=0.5.3
+  - leidenalg=0.8.10
+  - igraph=0.9.8
+  - python-igraph=0.9.10
+
+  # --------------------------------------------------
+  # R
+  # --------------------------------------------------
+  - r-base=4.3.1
+  - bioconductor-rhdf5
+  - bioconductor-rhdf5filters
+  - bioconductor-rhdf5lib
+  - bioconductor-singlecellexperiment
+  - bioconductor-scater
+  - bioconductor-scran
+  - bioconductor-scuttle
+  - bioconductor-biocsingular
+  - bioconductor-beachmat
+  - bioconductor-delayedarray
+  - bioconductor-delayedmatrixstats
+  - bioconductor-summarizedexperiment
+  - r-mclust
+  - r-matrix
+  - r-tidyverse
+  - r-rjson
+  - r-rcurl
+  - r-assertthat
+  - r-biocmanager
+
+  # --------------------------------------------------
+  # System libs R packages expect
+  # --------------------------------------------------
+  - libcurl
+  - libxml2
+  - openssl
+  - zlib
+  - bzip2
+  - xz
+  - hdf5
+  - cairo
+  - freetype
+  - fontconfig
+  - harfbuzz
+  - libpng
+  - libtiff
+  - libjpeg-turbo
+
+  # --------------------------------------------------
+  # Utilities
+  # --------------------------------------------------
+  - cmake
+  - git
+  - curl
+  - tqdm
+  - joblib
+  - seaborn
+  - matplotlib
+
+  # --------------------------------------------------
+  # pip extras
+  # --------------------------------------------------
+  - pip:
+      - pyqt5-sip==12.11.0
+
+
+
+# docker run --rm --gpus all \
+#   -v /workspace:/workspace \
+#   staig:latest \
+#   /workspace/config/config.yaml
+

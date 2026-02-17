@@ -1,0 +1,33 @@
+name: deepst-env
+channels:
+  - nvidia
+  - pytorch
+  - pyg
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python=3.10
+
+  - numpy
+  - pandas
+  - scipy
+  - h5py
+
+  - pytorch=2.1.0
+  - pytorch-cuda=12.1
+  - torchvision
+  - torchaudio
+
+  - pyg=2.3.1
+
+  - python-igraph=0.11.8
+  - leidenalg
+  - louvain
+
+  - scanpy=1.10.3
+
+  - pip
+
+  - pip:
+      - deepstkit

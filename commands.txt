@@ -1,0 +1,3 @@
+docker run -it --gpus all --rm --entrypoint bash deepst:latest
+
+ docker run --rm --gpus all \-v ./workspace:/workspace deepst:latest
