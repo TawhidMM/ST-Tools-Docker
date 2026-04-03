@@ -2,9 +2,6 @@ import sys
 import os
 from pathlib import Path
 
-os.environ['R_HOME'] = '/usr/lib/R'
-os.environ['R_LIBS_USER'] = '/opt/micromamba/envs/staig-env/lib/R/library'
-
 sys.path.append('/opt/STAIG')
 
 import sys
@@ -28,8 +25,6 @@ from staig.staig import STAIG
 # Paths
 # -----------------------------
 WORKSPACE = Path("/workspace")
-INPUT_PATH = WORKSPACE / "input"
-OUTPUT_PATH = WORKSPACE / "outputs"
 CONFIG_PATH = Path(sys.argv[1])
 
 
@@ -39,6 +34,8 @@ CONFIG_PATH = Path(sys.argv[1])
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
+INPUT_PATH = WORKSPACE / config["input_path"]
+OUTPUT_PATH = WORKSPACE / config["output_path"]
 
 # -----------------------------
 # Determinism

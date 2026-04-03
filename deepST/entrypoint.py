@@ -1,7 +1,5 @@
 import sys
-import os
 from pathlib import Path
-import scanpy as sc
 import pandas as pd
 import deepstkit as dt
 import json
@@ -16,9 +14,9 @@ with open(CONFIG_PATH, "r") as f:
 WORKSPACE = Path("/workspace")
 
 # ========== Configuration ==========
-DATA_DIR = WORKSPACE / "input"
+DATA_DIR = WORKSPACE / config["input_path"]
 SAMPLE_ID = "" 
-RESULTS_DIR = WORKSPACE / "outputs"
+RESULTS_DIR = WORKSPACE / config["output_path"]
 
 
 # ========== Initialize Analysis ==========
@@ -43,6 +41,8 @@ adata = deepst._get_adata(
     data_name=SAMPLE_ID,
     verbose=False
 )
+
+config["use_morphological"] = False
 
 if config["use_morphological"]:
     adata = deepst._get_image_crop(

@@ -1,65 +1,92 @@
-FROM nvidia/cuda:12.6.0-cudnn-runtime-ubuntu22.04
+# --- STAGE 1: Builder ---
+FROM python:3.10-slim AS builder
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV R_HOME=/usr/lib/R
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# 1. Install System R + System Dependencies (Moved from environment.yml)
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    DEBIAN_FRONTEND=noninteractive \
+    SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
+
+# Install build-time dependencies (including R-dev for compiling mclust)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget curl git \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    pkg-config \
-    r-base r-base-dev \
-    libxml2-dev libssl-dev libcurl4-openssl-dev \
-    libblas-dev liblapack-dev gfortran \
+    build-essential git curl r-base-dev libxml2-dev libssl-dev \
+    libcurl4-openssl-dev libblas-dev liblapack-dev gfortran \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install specific mclust 5.4.10
-# RUN Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org/')" \
-#     && Rscript -e "remotes::install_version('mclust', version='5.4.10', repos='https://cloud.r-project.org/')"
+WORKDIR /app
 
-# 3. Micromamba Setup
-ENV MAMBA_ROOT_PREFIX=/opt/micromamba
-ENV PATH=$MAMBA_ROOT_PREFIX/bin:$PATH
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba
+# Setup venv
+RUN uv venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# 4. Create Env (This should work now!)
-COPY environment.yml /tmp/environment.yml
-COPY requirements.txt /tmp/requirements.txt
-RUN micromamba create -y -n staig-env -f /tmp/environment.yml && micromamba clean --all --yes
-ENV PATH=$MAMBA_ROOT_PREFIX/envs/staig-env/bin:$PATH
+# 1. Install Torch Stack (cu121 is the stable match for Torch 2.2.2)
+RUN uv pip install \
+    --index-url https://download.pytorch.org/whl/cu121 \
+    torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2
 
-# 5. Install PyTorch + PyG (Using the high-speed wheels for CUDA 12.6)
-# FIX: We use --force-reinstall and --ignore-installed to bypass the "licenses" folder error
-# RUN pip install --no-cache-dir --ignore-installed \
-#     torch==2.5.1 \
-#     torchvision==0.20.1 \
-#     torchaudio==2.5.1 \
-#     --index-url https://download.pytorch.org/whl/cu124
+# 2. Install PyG Stack
+RUN uv pip install torch-geometric==2.5.2 \
+    pyg_lib torch-scatter torch-sparse torch-cluster torch-spline-conv \
+    -f https://data.pyg.org/whl/torch-2.2.0+cu121.html
 
-# # Install PyG wheels separately to ensure they link correctly to the torch we just forced in
-# RUN pip install --no-cache-dir \
-#     pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv \
-#     -f https://data.pyg.org/whl/torch-2.5.1+cu124.html \
-#     && pip install torch-geometric
+# 3. Install remaining Python deps from requirements.txt
+COPY requirements.txt .
+RUN uv pip install --no-cache -r requirements.txt
+
+
+# 4. Compile R dependencies (mclust 5.4.10)
+RUN mkdir -p /usr/local/lib/R/site-library && \
+    Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
+    Rscript -e "remotes::install_version('mclust', version='5.4.10', repos='https://cloud.r-project.org/', lib='/usr/local/lib/R/site-library')"
+
+# 5. Clone the tool
+RUN git clone --depth 1 https://github.com/y-itao/STAIG.git /opt/STAIG \
+    && rm -rf /opt/STAIG/Dataset /opt/STAIG/example /opt/STAIG/.git
+
+# --- STAGE 2: Runtime ---
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    USER="appuser" \
+    HOME="/home/appuser" \
+    MPLCONFIGDIR="/home/appuser/.config/matplotlib" \
+    NUMBA_CACHE_DIR="/home/appuser/.numba" \
+    R_LIBS_USER="/usr/local/lib/R/site-library"
 
 WORKDIR /opt/STAIG
-RUN git clone --depth 1 https://github.com/y-itao/STAIG.git . \
-    && rm -rf Dataset example .git
 
-# 7. Environment Activation Logic
-RUN micromamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX
-RUN echo "micromamba activate staig-env" >> ~/.bashrc
+# Install ONLY runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    r-base-core \
+    libgl1 \
+    libglib2.0-0 \
+    libxml2 \
+    libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Ensure the environment is active for the ENTRYPOINT
-ENV MAMBA_DEFAULT_ENV=staig-env
-ENV PATH=$MAMBA_ROOT_PREFIX/envs/staig-env/bin:$PATH
+# Create non-root user
+RUN useradd -m -u 1000 -s /bin/bash appuser \
+    && mkdir -p /workspace /home/appuser/.config \
+    && chown -R appuser:appuser /workspace /home/appuser
 
-RUN pip install --no-deps GeneClust
+# Copy Python Venv
+COPY --from=builder /opt/venv /opt/venv
+RUN chown -R appuser:appuser /opt/venv
 
-# 8. Set the Entrypoint
-COPY entrypoint.py /opt/STAIG/entrypoint.py
+# Copy R Libraries
+COPY --from=builder /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 
-# Using the "exec" form of ENTRYPOINT
-ENTRYPOINT ["python", "/opt/STAIG/entrypoint.py"]
+# Copy Tool Code
+COPY --from=builder /opt/STAIG /opt/STAIG
+RUN chown -R appuser:appuser /opt/STAIG
+
+COPY entrypoint.py .
+RUN chown appuser:appuser entrypoint.py
+
+USER appuser
+
+ENTRYPOINT ["python", "entrypoint.py"]

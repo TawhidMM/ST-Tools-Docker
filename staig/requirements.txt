@@ -1,8 +1,16 @@
-# The R-Python Bridge
+# --- Core Stack ---
+numpy==1.24.3
+pandas==2.0.1
+scipy==1.10.1
+h5py==3.8.0
+setuptools==65.5.0
+wheel
+
+# --- R-Python Bridge ---
 rpy2==3.5.11
 anndata2ri==1.1
 
-# Single-Cell & Spatial
+# --- Single-Cell & Spatial ---
 anndata==0.9.1
 scanpy==1.9.3
 scikit-misc==0.2.0
@@ -12,8 +20,9 @@ louvain
 harmonypy
 PyWGCNA
 spatialde
+GeneClust
 
-# Visualization & ML
+# --- Visualization & ML ---
 matplotlib==3.7.1
 seaborn==0.12.2
 umap-learn==0.5.3
@@ -21,10 +30,9 @@ scikit-learn==1.2.2
 pot==0.9.0
 byol-pytorch==0.6.0
 
-# Utilities
-opencv-python==4.7.0.72
+# --- Utilities ---
+opencv-python-headless==4.7.0.72
 pyyaml==6.0
 tqdm==4.65.0
 loguru==0.7.3
 threadpoolctl==3.4.0
-notebook
