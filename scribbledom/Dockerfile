@@ -42,13 +42,13 @@ ENV PATH="/opt/venv/bin:$PATH" \
     R_LIBS_USER="/usr/local/lib/R/site-library" \
     PYTHONUNBUFFERED=1
 
-# 1. Install Runtime Tools (jq added here!)
+# ---- Install Runtime Tools ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
     r-base-core \
     jq \
     libcurl4 \
     libxml2 \
-    libssl1.1 \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Setup Non-Root User
