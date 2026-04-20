@@ -28,8 +28,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # IMPORTANT: Clears ~20GB of disk space. 
-      # Necessary for heavy CUDA/R builds that often crash free GitHub runners.
+      # Clears disk space.
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
@@ -41,12 +40,15 @@ jobs:
       - name: Prepare Image Metadata
         id: prep
         run: |
-          # Converts repo name to lowercase (e.g., TawhidMM/MyRepo -> tawhidmm/myrepo)
           OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}
-          PROJECT_NAME=${{ github.event.inputs.project }}
+          PROJECT=${{ github.event.inputs.project }}
           TAG=${{ github.event.inputs.tag }}
           
-          echo "image_name=ghcr.io/${OWNER_LC}/${PROJECT_NAME}:${TAG}" >> $GITHUB_OUTPUT
+          # GHCR: ghcr.io/tawhidmm/staig:latest
+          echo "ghcr_tag=ghcr.io/${OWNER_LC}/${PROJECT}:${TAG}" >> $GITHUB_OUTPUT
+          
+          # Docker Hub: tawhidmm/st_tools:staig-latest
+          echo "dh_tag=${{ secrets.DOCKERHUB_USERNAME }}/st_tools:${PROJECT}-${TAG}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,15 +60,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          # Focuses Docker ONLY on the selected project folder
+          # Targets the specific tool folder (staig, deepst, etc.)
           context: ./${{ github.event.inputs.project }}
-          # Assumes the Dockerfile is inside that folder
           file: ./${{ github.event.inputs.project }}/Dockerfile
           push: true
-          tags: ${{ steps.prep.outputs.image_name }}
-          # Maintains your existing GHA caching strategy
+          tags: |
+            ${{ steps.prep.outputs.ghcr_tag }}
+            ${{ steps.prep.outputs.dh_tag }}
+          # Caching is vital for these 12GB+ builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
