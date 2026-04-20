@@ -23,6 +23,8 @@ mkdir -p "$JOB_DIR/outputs/$MATRIX_REPRESENTATION_FOLDER"
 mkdir -p "$JOB_DIR/outputs/$MODEL_OUTPUTS_FOLDER"
 mkdir -p "$JOB_DIR/outputs/$FINAL_OUTPUTS_FOLDER"
 
+mkdir -p "/opt/ScribbleDom/datasets"
+
 
 # -----------------------------
 # Redirect tool outputs

@@ -29,10 +29,14 @@ RUN uv pip install --no-cache -r requirements.txt
 # 3. Clone and Install R Libraries
 RUN git clone --depth 1 https://github.com/1alnoman/ScribbleDom.git /opt/ScribbleDom \
     && mkdir -p /usr/local/lib/R/site-library \
-    && Rscript -e ".libPaths('/usr/local/lib/R/site-library'); \
-                 source('/opt/ScribbleDom/code_utils/read_data/installation.R'); \
-                 install_libraries()"
-
+    && Rscript -e ' \
+        # FIX: Point to the same path you use in Stage 2
+        .libPaths("/usr/local/lib/R/site-library"); \
+        options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/bookworm/latest")); \
+        source("/opt/ScribbleDom/code_utils/read_data/installation.R"); \
+        install_libraries() \
+    '
+    
 # ============================================================
 # Stage 2 – Runtime
 # ============================================================
