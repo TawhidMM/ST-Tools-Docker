@@ -1,5 +1,9 @@
 name: ST Tools Build
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -20,10 +24,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
