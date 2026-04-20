@@ -1,0 +1,21 @@
+# Torch Stack (Matches your original ScribbleDom versions)
+--extra-index-url https://download.pytorch.org/whl/cu116
+torch==1.13.1+cu116
+torchvision==0.14.1+cu116
+torchaudio==0.13.1
+
+# Science Stack
+numpy<2.0.0
+scipy==1.8.1
+pandas==1.5.3
+scikit-learn==1.1.1
+scanpy==1.9.2
+anndata==0.8.0
+umap-learn==0.5.3
+leidenalg>=0.10.1
+igraph>=0.10.0
+tqdm
+joblib
+seaborn
+matplotlib
+pyqt5-sip==12.11.0
