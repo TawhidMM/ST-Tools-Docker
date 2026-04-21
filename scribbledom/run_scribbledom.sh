@@ -23,18 +23,21 @@ mkdir -p "$JOB_DIR/outputs/$MATRIX_REPRESENTATION_FOLDER"
 mkdir -p "$JOB_DIR/outputs/$MODEL_OUTPUTS_FOLDER"
 mkdir -p "$JOB_DIR/outputs/$FINAL_OUTPUTS_FOLDER"
 
-mkdir -p "/opt/ScribbleDom/datasets"
+
+DATASET_DIR="/opt/ScribbleDom/$SPACE_RANGER_FOLDER/$DATASET/$SAMPLE"
+mkdir -p "$DATASET_DIR"
+
+# Symlink the ACTUAL mounted data into the internal dataset dir
+ln -sfn /input/* "$DATASET_DIR/"
 
 
 # -----------------------------
 # Redirect tool outputs
 # -----------------------------
-ln -sfn "$JOB_DIR/outputs/$MODEL_OUTPUTS_FOLDER" "/opt/ScribbleDom/$MODEL_OUTPUTS_FOLDER"
 ln -sfn "$JOB_DIR/outputs/$FINAL_OUTPUTS_FOLDER" "/opt/ScribbleDom/$FINAL_OUTPUTS_FOLDER"
+ln -sfn "$JOB_DIR/outputs/$MODEL_OUTPUTS_FOLDER" "/opt/ScribbleDom/$MODEL_OUTPUTS_FOLDER"
 ln -sfn "$JOB_DIR/outputs/$PREPROCESSED_DATA_FOLDER" "/opt/ScribbleDom/$PREPROCESSED_DATA_FOLDER"
 ln -sfn "$JOB_DIR/outputs/$MATRIX_REPRESENTATION_FOLDER" "/opt/ScribbleDom/$MATRIX_REPRESENTATION_FOLDER"
-
-ln -sfn "$JOB_DIR/$SPACE_RANGER_FOLDER" "/opt/ScribbleDom/$SPACE_RANGER_FOLDER"
 
 cd /opt/ScribbleDom
 
@@ -59,8 +62,6 @@ fi
 
 
 python visium_data_to_matrix_representation_converter.py --params "$CONFIG_FILE"
-python scribble_dom.py --params "$CONFIG_FILE"
+python autoscribble_dom.py --params "$CONFIG_FILE"
 python best_model_estimator.py --params "$CONFIG_FILE"
 python show_results.py --params "$CONFIG_FILE"
-
-echo "✅ Done. Outputs in $JOB_DIR/outputs"

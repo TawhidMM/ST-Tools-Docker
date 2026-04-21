@@ -1,86 +1,100 @@
 # ============================================================
 # Stage 1 – Builder
 # ============================================================
-FROM python:3.10-slim AS builder
+FROM ubuntu:22.04 AS builder
 
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1. Install Python 3.10 and Build-time dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common wget curl ca-certificates gnupg git build-essential \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update && apt-get install -y python3.10 python3.10-dev python3.10-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install 'uv'
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    UV_LINK_MODE=copy \
-    DEBIAN_FRONTEND=noninteractive
-    
-# Build-time dependencies (CRITICAL for scater + scran)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential git curl gfortran \
-    r-base-dev \
-    libcurl4-openssl-dev libssl-dev libxml2-dev \
-    # === Added for scater / Bioconductor graphics & C++ packages ===
-    libcairo2-dev libharfbuzz-dev libfribidi-dev \
-    libpng-dev libjpeg-dev libtiff-dev \
-    libfontconfig1-dev libfreetype6-dev \
-    && rm -rf /var/lib/apt/lists/*
-    
 WORKDIR /app
 
-# 1. Setup Python Environment
+# 3. Setup Python Virtual Environment and Install Requirements
+COPY requirements.txt .
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# 2. Install Python Deps
-COPY requirements.txt .
 RUN uv pip install --no-cache -r requirements.txt
 
-# 3. Clone and Install R Libraries (with proper error handling)
-RUN git clone --depth 1 https://github.com/1alnoman/ScribbleDom.git /opt/ScribbleDom \
-    && mkdir -p /usr/local/lib/R/site-library \
-    && NCPUS=$(nproc) \
-    && Rscript -e ' \
-	    .libPaths("/usr/local/lib/R/site-library");  \
-	    options(repos = c(CRAN = "https://cloud.r-project.org")); \
-	    source("/opt/ScribbleDom/code_utils/read_data/installation.R"); \
-	    install_libraries();'  \
-    && rm -rf /tmp/* /root/.cache/R /root/.cache/RStudio
-    
-# ============================================================
-# Stage 2 – Runtime
-# ============================================================
-FROM python:3.10-slim
+# 4. Clone the repository
+RUN git clone --depth 1 https://github.com/TawhidMM/ScribbleDom.git /opt/ScribbleDom \
+    && cd /opt/ScribbleDom \
+    && rm -rf .git preprocessed_data configs
 
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
-    R_LIBS_SITE="/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library"
-    
-# Runtime dependencies (non-dev versions)
+
+# ============================================================
+# Stage 2 – Runtime (Lean)
+# ============================================================
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
+
+# 1. Install Runtime Prerequisites & Python 3.10
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common wget curl ca-certificates gnupg dirmngr \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update && apt-get install -y python3.10 python3.10-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Add Keys and Repo for r2u
+RUN wget -qO- https://eddelbuettel.github.io/r2u/assets/dirk_eddelbuettel_key.asc \
+    | tee /etc/apt/trusted.gpg.d/cranapt_key.asc \
+    && gpg --keyserver keyserver.ubuntu.com --recv-keys 51716619E084DAB9 \
+    && gpg --export 51716619E084DAB9 > /etc/apt/trusted.gpg.d/cran_ubuntu_key.gpg \
+    && echo "deb [arch=amd64] https://r2u.stat.illinois.edu/ubuntu jammy main" \
+    > /etc/apt/sources.list.d/r2u.list \
+    && echo "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" \
+    > /etc/apt/sources.list.d/cran.list
+
+# 3. Pin r2u priority so apt prefers these over standard Ubuntu repos
+RUN echo "Package: *\nPin: release o=CRAN-Apt Repository\nPin-Priority: 1000" \
+    > /etc/apt/preferences.d/r2u
+
+
+# 4. Install R Packages & Vital Python Runtime Shared Libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     r-base-core \
+    r-cran-biocmanager \
+    r-bioc-singlecellexperiment \
+    r-bioc-scater \
+    r-bioc-scran \
+    r-bioc-rhdf5 \
+    r-cran-mclust \
+    r-cran-matrix \
+    r-cran-tidyverse \
+    r-cran-rjson \
+    r-cran-rcurl \
+    r-cran-assertthat \
+    r-bioc-biocfilecache \
+    libgomp1 \
+    libgl1-mesa-glx \
+    libxml2 \
     jq \
-    libcurl4 libxml2 libssl3 \
-    # === Runtime libs needed for scater to actually LOAD ===
-    libcairo2 libharfbuzz0b libfribidi0 \
-    libpng16-16 libjpeg62-turbo libtiff6 \
-    libfontconfig1 libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
-    
-# Force correct .libPaths for everyone
-RUN mkdir -p /etc/R \
-    && echo '.libPaths(c("/usr/local/lib/R/site-library", .libPaths()))' > /etc/R/Rprofile.site \
-    && echo 'R_LIBS_SITE="/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library"' >> /etc/R/Renviron.site
-    
-# Non-root user
-RUN useradd -m -u 1000 -s /bin/bash appuser \
-    && mkdir -p /workspace /home/appuser/.cache \
-    && chown -R appuser:appuser /home/appuser /workspace /usr/local/lib/R/site-library
-    
-# Copy artifacts
+
+# 5. Copy optimized artifacts from Stage 1
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /usr/local/lib/R/site-library /usr/local/lib/R/site-library
-COPY --from=builder --chown=appuser:appuser /opt/ScribbleDom /opt/ScribbleDom
+COPY --from=builder /opt/ScribbleDom /opt/ScribbleDom
+
+# 6. Setup User
+RUN useradd -m -u 1000 -s /bin/bash appuser \
+    && chown -R appuser:appuser /opt/ScribbleDom /home/appuser
 
 WORKDIR /opt/ScribbleDom
 
-COPY --chown=appuser:appuser run_scribbledom.sh /usr/local/bin/run_scribbledom.sh
-RUN chmod +x /usr/local/bin/run_scribbledom.sh
+COPY --chown=appuser:appuser ./runner /runner/
+RUN chmod +x /runner/run_pipeline.py
 
 USER appuser
-ENTRYPOINT ["/usr/local/bin/run_scribbledom.sh"]
+
+ENTRYPOINT ["/runner/run_pipeline.py"]
