@@ -2,21 +2,20 @@ import sys
 from pathlib import Path
 import pandas as pd
 import deepstkit as dt
+from deepstkit.utils_func import read_10X_Visium
 import json
 import shutil
 
 
-CONFIG_PATH = Path(sys.argv[1])
-with open(CONFIG_PATH, "r") as f:
-        config = json.load(f)
+config_file = Path('/workspace/config/config.json')
+with open(config_file) as f:
+    config = json.load(f)
 
 
 WORKSPACE = Path("/workspace")
-
-# ========== Configuration ==========
-DATA_DIR = WORKSPACE / config["input_path"]
+DATA_DIR = Path("/input")
 SAMPLE_ID = "" 
-RESULTS_DIR = WORKSPACE / config["output_path"]
+RESULTS_DIR = WORKSPACE / "outputs"
 
 
 # ========== Initialize Analysis ==========
@@ -42,7 +41,14 @@ adata = deepst._get_adata(
     verbose=False
 )
 
-config["use_morphological"] = False
+# adata = read_10X_Visium(
+#     path=DATA_DIR, 
+#     quality='fulres', 
+#     image_path=DATA_DIR / "spatial" / "tissue_fulres_image.png"
+# )
+
+config["use_morphological"] = config["use_morphological"] == "Yes"
+
 
 if config["use_morphological"]:
     adata = deepst._get_image_crop(
@@ -63,7 +69,7 @@ adata = deepst._get_augment(
     neighbour_k=config["neighbour_k"],
     spatial_k=config["spatial_k"],
     n_components=config["n_components"],
-    use_morphological = config["use_morphological"]  # Set True if using H&E features
+    use_morphological = config["use_morphological"]
 )
 
 # Construct spatial neighborhood graph

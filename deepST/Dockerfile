@@ -8,22 +8,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential && rm -rf /var/lib/apt/lists/*
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Create venv
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install base requirements
+# Install base deps
 RUN uv pip install wheel "numpy==1.26.4"
 
-# Torch stack
+# Torch (CUDA)
 RUN uv pip install \
     --index-url https://download.pytorch.org/whl/cu121 \
     torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0
 
-# PyG core
+# PyG
 RUN uv pip install \
     --index-strategy unsafe-best-match \
     --find-links https://data.pyg.org/whl/torch-2.1.0+cu121.html \
@@ -33,13 +35,13 @@ RUN uv pip install \
     torch-cluster==1.6.3+pt21cu121 \
     torch-spline-conv==1.2.2+pt21cu121
 
-
+# App deps
 RUN uv pip install torch-geometric==2.3.1 "setuptools==65.5.0" deepstkit
 
-# Pre-download weights
+# Pre-download model weights
 RUN python -c "from torchvision.models import resnet50, ResNet50_Weights; resnet50(weights=ResNet50_Weights.DEFAULT)"
 
-# Cleanup (Modified to be less aggressive)
+# Cleanup (safe)
 RUN find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 
@@ -49,7 +51,6 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    USER="appuser" \ 
     HOME="/home/appuser" \
     MPLCONFIGDIR="/home/appuser/.config/matplotlib" \
     NUMBA_CACHE_DIR="/home/appuser/.numba" \
@@ -57,26 +58,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Runtime libs only (keep minimal)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 libgl1 && rm -rf /var/lib/apt/lists/*
+    libglib2.0-0 libgl1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create user and folders
+# Create user
 RUN useradd -m -u 1000 -s /bin/bash appuser \
     && mkdir -p /workspace /home/appuser/.cache/torch \
-    && chown -R appuser:appuser /home/appuser
+    && chown -R appuser:appuser /home/appuser /workspace
 
-# Copy venv AND fix ownership
-COPY --from=builder /opt/venv /opt/venv
-RUN chown -R appuser:appuser /opt/venv
+COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
+COPY --from=builder --chown=appuser:appuser /root/.cache/torch /home/appuser/.cache/torch
 
-# Copy pre-downloaded weights
-COPY --from=builder /root/.cache/torch /home/appuser/.cache/torch
-RUN chown -R appuser:appuser /home/appuser/.cache/torch
-
-COPY entrypoint.py .
-
-# Final permission check for workspace
-RUN chown -R appuser:appuser /workspace
+# App entry
+COPY --chown=appuser:appuser entrypoint.py .
 
 USER appuser
 ENTRYPOINT ["python", "entrypoint.py"]
