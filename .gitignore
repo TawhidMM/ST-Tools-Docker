@@ -1,2 +1,13 @@
 **/workspace/
+<<<<<<< HEAD
 **/mount/
+=======
+**/mount/
+**/thesis/
+R/
+commands.txt
+DB/
+graphST/
+stagate/
+commands.txt
+>>>>>>> 43b3001 ([staig] fixing entrypoint file)

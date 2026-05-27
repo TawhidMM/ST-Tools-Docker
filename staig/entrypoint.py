@@ -24,18 +24,20 @@ from staig.staig import STAIG
 # -----------------------------
 # Paths
 # -----------------------------
+INPUT_PATH = Path("/input")
 WORKSPACE = Path("/workspace")
-CONFIG_PATH = Path(sys.argv[1])
+OUTPUT_PATH = WORKSPACE / "outputs"
 
 
 # -----------------------------
 # Load config (YAML only)
 # -----------------------------
-with open(CONFIG_PATH, "r") as f:
+config_file = Path('/workspace/config/config.yml')
+
+with open(config_file) as f:
     config = yaml.safe_load(f)
 
-INPUT_PATH = WORKSPACE / config["input_path"]
-OUTPUT_PATH = WORKSPACE / config["output_path"]
+
 
 # -----------------------------
 # Determinism
@@ -63,11 +65,14 @@ args = Args()
 # -----------------------------
 # Load data (Space Ranger dir)
 # -----------------------------
+use_image_emb = config["use_morphology"] == "Yes"
+single_view = not use_image_emb
+
 adata = LoadSingle10xAdata(
     path=INPUT_PATH,
     n_neighbors=config["num_neigh"],
     n_top_genes=config["num_gene"],
-    image_emb=True,
+    image_emb=use_image_emb,
     label=args.label,
 ).run()
 
@@ -78,7 +83,7 @@ adata = LoadSingle10xAdata(
 staig = STAIG(
     args=args,
     config=config,
-    single=False
+    single=single_view
 )
 
 staig.adata = adata

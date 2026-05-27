@@ -1,3 +1,60 @@
 docker run -it --gpus all --rm --entrypoint bash deepst:latest
 
+<<<<<<< HEAD
  docker run --rm --gpus all \-v ./workspace:/workspace deepst:latest
+=======
+docker run --rm --gpus all -v ./workspace:/workspace deepst:latest
+
+
+
+docker run -it --gpus all --rm \
+-v "$(pwd)/workspace/runs/e3116754-c0c2-4e9c-a8c6-4947f18c072f:/workspace" \
+-v "$(pwd)/workspace/datasets:/input" \
+-v "$(pwd)/workspace/annotation.json:/input/annotation.json" \
+-v "$(pwd)/run_pipeline.py:/runner/run_pipeline.py" \
+-v "$(pwd)/scribbledom_adapter.py:/runner/scribbledom_adapter.py" \
+tawhidmm/st_tools:scribbledom-latest \
+python3 /runner/run_pipeline.py
+
+/mnt/Drive E/Class Notes/L-4 T-2/Project/docker/scribbledom/workspace/datasets
+
+
+
+
+docker run --gpus all --rm \
+  -v "/mnt/Drive D/STAIG/Dataset/thesis:/dataset" \
+  -v "/mnt/OS/Thesis_analysis/graphST:/output" \
+  -v "$(pwd)/runner.py:/opt/graphST/runner.py" \
+  graphst:latest \
+  python3 /opt/graphST/runner.py
+
+
+
+docker run --gpus all --rm \
+  -v "/mnt/Drive D/STAIG/Dataset/thesis:/dataset" \
+  -v "/mnt/OS/Thesis_analysis/staig:/output" \
+  -v "$(pwd)/thesis:/runner/runner.py" \
+  --entrypoint "" \
+  tawhidmm/st_tools:staig-latest \
+  python3 /runner/runner.py
+
+
+docker run --gpus all --rm \
+  -v "/mnt/Drive D/STAIG/Dataset/thesis:/dataset" \
+  -v "/mnt/OS/Thesis_analysis/deepST:/output" \
+  -v "$(pwd)/thesis:/runner/runner.py" \
+  --entrypoint "" \
+  tawhidmm/st_tools:deepst-latest \
+  python3 /runner/runner.py
+
+
+
+
+
+
+/mnt/Drive E/Class Notes/L-4 T-2/ScribbleDom/preprocessed_data/Human_DLPFC/151507/reading_h5
+
+
+mkdir -p "/opt/ScribbleDom/datasets/dataset_001/sample_001"
+ln -sfn /input/* "/opt/ScribbleDom/datasets/dataset_001/sample_001"
+>>>>>>> 43b3001 ([staig] fixing entrypoint file)
