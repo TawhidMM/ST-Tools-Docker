@@ -29,6 +29,7 @@ def main():
     # 1. Run Adaptation (The Hook)
     # -----------------------------------------------------
     scribbledom_adapter.prepare_inputs(config, scribbledom_root)
+    scribbledom_adapter.prepare_config(config, config_file)
     scribbledom_adapter.prepare_outputs(config, workspace_dir, scribbledom_root)
     scribbledom_adapter.prepare_scribble(config, scribbledom_root)
 

@@ -52,6 +52,16 @@ def prepare_inputs(config, tool_root: Path):
         create_symlink(source=item, target=tool_input_dir / item.name)
 
 
+def prepare_config(config: dict, config_file_path: Path):
+    """Ensures the config file has seed under correct name and format."""
+   
+    file_config = config.copy()
+    file_config["seed_options"] = [file_config.get("seed", 42)] 
+    
+    with open(config_file_path, 'w') as f:
+        json.dump(file_config, f, indent=4)
+
+
 
 def prepare_outputs(config, workspace_dir: Path, tool_root: Path):
     """Links tool internal output folders to the backend's mounted output volume."""
