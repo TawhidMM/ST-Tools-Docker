@@ -62,7 +62,7 @@ torch.use_deterministic_algorithms(True)
 
 
 class Args:
-    label = True
+    label = False
 args = Args()    
 # -----------------------------
 # Load data (Space Ranger dir)

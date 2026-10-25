@@ -163,7 +163,7 @@ def _build_augmentations() -> torch.nn.Sequential:
     )
 
 
-def extract_image_features(
+def _extract_image_features(
     input_dir: PathLike,
     output_dir: PathLike,
     work_dir: PathLike,
@@ -240,7 +240,7 @@ def extract_image_features(
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     augmentations = _build_augmentations()
-    backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT).to(device)
+    backbone = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1).to(device)
     if torch.cuda.device_count() > 1:
         backbone = nn.DataParallel(backbone)
         hidden_layer = "module.avgpool"
@@ -294,6 +294,31 @@ def extract_image_features(
     result = np.vstack(embeddings)
     np.save(img_enbedding_dir / "embeddings.npy", result)
     return result
+
+
+def extract_image_features(
+    input_dir: PathLike,
+    output_dir: PathLike,
+    work_dir: PathLike,
+    img_enbedding_dir: PathLike,
+) -> np.ndarray:
+    """Extract image features and remove temporary patch data afterward."""
+    work_dir = Path(work_dir)
+    temporary_directories = (
+        work_dir / "clip_image",
+        work_dir / "clip_image_filter",
+    )
+    try:
+        return _extract_image_features(
+            input_dir,
+            output_dir,
+            work_dir,
+            img_enbedding_dir,
+        )
+    finally:
+        for temporary_directory in temporary_directories:
+            if temporary_directory.exists():
+                shutil.rmtree(temporary_directory)
 
 
 def main() -> None:
