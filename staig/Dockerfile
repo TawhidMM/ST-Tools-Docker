@@ -7,7 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     DEBIAN_FRONTEND=noninteractive \
-    SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
+    SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True \
+    TORCH_HOME="/opt/torch-cache"
 
 # Build-time dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -35,6 +36,12 @@ RUN uv pip install torch-geometric==2.5.2 \
 COPY requirements.txt .
 RUN uv pip install --no-cache -r requirements.txt
 
+# Download ImageNet-pretrained ResNet-50 weights at build time
+RUN python -c "\
+from torchvision.models import resnet50, ResNet50_Weights; \
+model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1); \
+print('Pretrained ResNet-50 weights downloaded successfully')"
+
 # 4. Compile R dependencies
 RUN mkdir -p /usr/local/lib/R/site-library && \
     Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
@@ -51,6 +58,7 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
+    TORCH_HOME="/opt/torch-cache" \
     USER="appuser" \
     HOME="/home/appuser" \
     MPLCONFIGDIR="/home/appuser/.config/matplotlib" \
@@ -77,7 +85,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --chown=appuser:appuser --from=builder /opt/venv /opt/venv
 COPY --from=builder /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 COPY --chown=appuser:appuser --from=builder /opt/STAIG /opt/STAIG
+COPY --from=builder --chown=appuser:appuser /opt/torch-cache /opt/torch-cache
 COPY --chown=appuser:appuser entrypoint.py .
+COPY --chown=appuser:appuser extract_image_features.py .
 
 USER appuser
 

@@ -19,6 +19,7 @@ import pandas as pd
 
 from staig.adata_processing import LoadSingle10xAdata
 from staig.staig import STAIG
+from extract_image_features import extract_image_features
 
 
 # -----------------------------
@@ -27,6 +28,7 @@ from staig.staig import STAIG
 INPUT_PATH = Path("/input")
 WORKSPACE = Path("/workspace")
 OUTPUT_PATH = WORKSPACE / "outputs"
+IMG_EMBEDDINGS_PATH = INPUT_PATH / "embeddings.npy"
 
 
 # -----------------------------
@@ -66,6 +68,16 @@ args = Args()
 # Load data (Space Ranger dir)
 # -----------------------------
 use_image_emb = config["use_morphology"] == "Yes"
+
+if use_image_emb and not IMG_EMBEDDINGS_PATH.exists():
+    extract_image_features(
+        INPUT_PATH,
+        OUTPUT_PATH,
+        WORKSPACE,
+        INPUT_PATH,
+    )
+
+
 single_view = not use_image_emb
 
 adata = LoadSingle10xAdata(
